@@ -31,6 +31,7 @@ int offset[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
 
 //定义关卡枚举
 enum chapter{
+  WIN,
   EASY,
   NORMAL,
   HARD
@@ -51,20 +52,25 @@ struct grid map[ROW][COL];
 //定义蛇头和蛇尾和移动方向
 struct snack head, tail;
 directions direction;
-//当前关卡
-chapter nowChapter = EASY;
 //定义分数
 int score = 0;
 //本局游戏是否结束,1为晋级，2为失败
 int isFinish = 0;
-//定义蛇的速度，范围是1-10，越大越快
-int speed = 4;
-//定义每个食物可以得到的分数，可以在初始化地图的时候更改
-int foodScore = 1;
 //定义行走路线栈，便于跟踪尾巴的路线
 struct snack route[LEN];
 int pHead = 0;
 int pTail = 0;
+
+//以下内容需要在关卡设定的时候初始化
+//当前关卡和下一级关卡
+chapter nowChapter = EASY;
+chapter nextChapter = EASY;
+//定义蛇的速度，范围是1-10，越大越快
+int speed = 4;
+//定义每个食物可以得到的分数
+int foodScore = 1;
+//定义完成本关卡所需的分数，需要小于蛇的最大长度
+int levelUpScore;
 
 //绘图和光标的相关函数
 void SetPos(COORD a);
@@ -243,14 +249,68 @@ void easyMap(){
   tail.y++;
   map[head.x][head.y].type = HEAD;
   map[tail.x][tail.y].type = BODY;
+
+  //初始化其他变量
+  nextChapter = NORMAL;
+  speed = 4;
+  foodScore = 1;
+  levelUpScore = 3;
 }
 
 void normalMap(){
   //自行添加代码
+  int i,j;
+
+  //初始化墙的位置
+  i = 0;
+  for(j=0; j<COL; ++j) map[i][j].type = WALL;
+  i = ROW-1;
+  for(j=0; j<COL; ++j) map[i][j].type = WALL;
+  j = 0;
+  for(i=0; i<ROW; ++i) map[i][j].type = WALL;
+  j = COL-1;
+  for(i=0; i<ROW; ++i) map[i][j].type = WALL;
+
+  //初始化蛇的位置
+  head.x = tail.x = 20;
+  head.y = tail.y = 10;
+  tail.y++;
+  map[head.x][head.y].type = HEAD;
+  map[tail.x][tail.y].type = BODY;
+
+  //初始化其他变量
+  nextChapter = HARD;
+  speed = 6;
+  foodScore = 2;
+  levelUpScore = 6;
 }
 
 void hardMap(){
   //自行添加代码
+  int i,j;
+
+  //初始化墙的位置
+  i = 0;
+  for(j=0; j<COL; ++j) map[i][j].type = WALL;
+  i = ROW-1;
+  for(j=0; j<COL; ++j) map[i][j].type = WALL;
+  j = 0;
+  for(i=0; i<ROW; ++i) map[i][j].type = WALL;
+  j = COL-1;
+  for(i=0; i<ROW; ++i) map[i][j].type = WALL;
+
+  //初始化蛇的位置
+  head.x = tail.x = 20;
+  head.y = tail.y = 10;
+  tail.y++;
+  map[head.x][head.y].type = HEAD;
+  map[tail.x][tail.y].type = BODY;
+
+  //初始化其他变量
+  nextChapter = WIN;
+  speed = 8;
+  foodScore = 3;
+  levelUpScore = 3;
 }
 
 //将地图和蛇显示出来
@@ -280,6 +340,8 @@ void showMap(){
 //显示帮助和说明
 void showInfo()
 {
+	SetPos(45,2);
+	printf("Now chapter: %d", (int)nowChapter);
 	SetPos(45,5);
 	printf("Use w,a,s,d to control your snack.");
 	SetPos(45,6);
@@ -331,7 +393,7 @@ void genFood(){
 //显示成绩
 void showScore(){
   SetPos(45,10);
-	printf("Score: %d", score);
+	printf("Score: %d, target: %d", score, levelUpScore);
 }
 
 //蛇移动的核心代码
@@ -390,7 +452,7 @@ void move(){
     head = next;
   }
   else if(map[next.x][next.y].type == BODY || map[next.x][next.y].type == WALL){
-    isFinish = 1;
+    isFinish = 2;
     return;
   }
   else if(map[next.x][next.y].type == FOOD){
@@ -409,6 +471,11 @@ void move(){
 
   flushMap();
   showScore();
+
+  if(score >= levelUpScore){
+    isFinish = 1;
+    return;
+  }
 }
 
 
@@ -418,10 +485,23 @@ void flushMap(){
 
 void levelUp(){
   //自行添加代码
+  nowChapter = nextChapter;
+  SetPos(45,10);
+  if(nowChapter == WIN){
+    printf("Congratulations, you Win!");
+    nowChapter = EASY;
+  }
+  else
+    printf("Congratulations, you Level Up!");
+
   _getch();
 }
 
 void gameOver(){
   //自行添加代码
+  nowChapter = EASY;
+  SetPos(45,11);
+	printf("Oh, no, you DIE!");
+
   _getch();
 }
